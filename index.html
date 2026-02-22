@@ -1,1 +1,261 @@
+<!DOCTYPE html>
+<html> 
+  <head>
+  <meta name="google-site-verification" content="u6wjJAQfhBnvFcV5H4uz1zQ2AYe_xOiCbUXYYIT_iNE" />
+  <title>Kingsley Web Solutions | Professional Website Developer</title> 
+    
+    <meta name="description" content="Kingsley Web Solutions offers professional website development, business websites, chat applications, and modern web solutions worldwide." />
+  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <style>
+    body{
+      font-family: Arial;
+      margin:0;
+      background:#f0f2f5;
+    }
+
+    header{
+      background:#1877f2;
+      color:white;
+      padding:15px;
+      font-size:20px;
+      text-align:center;
+    }
+
+    #loginPage, #chatPage{
+      padding:15px;
+    }
+
+    input{
+      width:100%;
+      padding:10px;
+      margin:5px 0;
+    }
+
+    button{
+      padding:10px;
+      background:#1877f2;
+      color:white;
+      border:none;
+      width:100%;
+      margin-top:5px;
+    }
+
+    #messages{
+      height:300px;
+      background:white;
+      padding:10px;
+      overflow-y:scroll;
+      margin-bottom:10px;
+    }
+
+    .msg{
+      padding:5px;
+      border-bottom:1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+
+<header>King Chat App</header>
+
+<div id="loginPage">
+  <h3>Login / Signup</h3>
+
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Password">
+
+  <button onclick="signup()">Signup</button>
+  <button onclick="login()">Login</button>
+</div>
+
+<div id="chatPage" style="display:none;">
+  <div id="messages"></div>
+
+  <input type="text" id="signupUsername" placeholder="Choose username" style="width:100%;padding:10px;margin-bottom:5px;">
+<input type="email" id="signupEmail" placeholder="Email" style="width:100%;padding:10px;margin-bottom:5px;">
+<input type="password" id="signupPassword" placeholder="Password" style="width:100%;padding:10px;margin-bottom:5px;">
+<button onclick="signup()">Sign Up</button
+
+  <button onclick="logout()">Logout</button>
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  onSnapshot,
+  query,
+  orderBy
+  doc,
+  setdoc,
+  getdoc,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAXTg2RHlKjug5nCx6UTJ6v4jiIVElaRlY",
+  authDomain: "king-chat-app-a30e4.firebaseapp.com",
+  projectId: "king-chat-app-a30e4",
+  storageBucket: "king-chat-app-a30e4.firebasestorage.app",
+  messagingSenderId: "791983811270",
+  appId: "1:791983811270:web:6a8973ad8e1240a81e45c7",
+  measurementId: "G-KS9CCMLCQN"
+};
+
+const app = initializeApp(firebaseConfig);
+
+const auth = getAuth();
+
+const db = getFirestore();
+
+
+window.signup = function(){
+
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  createUserWithEmailAndPassword(auth,email,password)
+  .then(()=>{
+    alert("Signup successful");
+  })
+  .catch(e=>alert(e.message));
+}
+
+
+window.login = function(){let currentUsername = "";
+
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  signInWithEmailAndPassword(auth,email,password)
+  .then(()=>{
+    alert("Login successful");
+  })
+  .catch(e=>alert(e.message));
+}
+
+
+window.signup = async function(){
+
+  const username = document.getElementById("signupUsername").value;
+  const email = document.getElementById("signupEmail").value;
+  const password = document.getElementById("signupPassword").value;
+
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth,email,password);
+
+    const user = userCredential.user;
+
+    await setDoc(doc(db,"users",user.uid),{
+      username: username,
+      email: email
+    });
+
+    alert("Signup successful");
+
+  } catch(error){
+    alert(error.message);
+  }
+
+}
+
+
+window.sendMessage = async function(){
+
+  const text = document.getElementById("message").value;
+
+  if(text=="") return;
+
+  await addDoc(collection(db,"messages"),{
+    sender: currentUsername
+    text: text,
+    time: Date.now()
+  });
+
+  document.getElementById("message").value="";
+}
+
+
+
+onAuthStateChanged(auth,user=>{const docSnap = await getDoc(doc(db,"users",user.uid));
+
+    if(docSnap.exists()){
+      currentUsername = docSnap.data().username;
+    }
+
+    document.getElementById("loginPage").style.display="none";
+    document.getElementById("chatPage").style.display="block";
+
+    loadMessages();
+
+  }else{
+
+    document.getElementById("loginPage").style.display="block";
+    document.getElementById("chatPage").style.display="none";
+
+  }
+
+});
+
+  if(user){
+
+    document.getElementById("loginPage").style.display="none";
+    document.getElementById("chatPage").style.display="block";
+
+    loadMessages();
+
+  }else{
+
+    document.getElementById("loginPage").style.display="block";
+    document.getElementById("chatPage").style.display="none";
+
+  }
+
+});
+
+
+function loadMessages(){
+
+  const q = query(collection(db,"messages"), orderBy("time"));
+
+  onSnapshot(q,snapshot=>{
+
+    const messagesDiv = document.getElementById("messages");
+
+    messagesDiv.innerHTML="";
+
+    snapshot.forEach(doc=>{
+
+      const msg = doc.data();
+
+      messagesDiv.innerHTML +=
+      "<div class='msg'><b>"
+      + msg.sender +
+      ":</b> " +
+      msg.text +
+      "</div>";
+
+    });
+
+  });
+
+}
+
+</script>
+
+</body>
+</html>
